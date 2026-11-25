@@ -42,6 +42,7 @@ jobs:
             }
             await page.locator('#language').selectOption('en');
             await page.locator('#filter').fill('Sosúa'); assert.ok((await page.locator('#results').innerText()).includes('Sosúa')); await page.locator('#filter').fill('zzzz'); assert.equal(await page.locator('#results p').count(),0);
+            await page.locator('#filter').fill('Punta Cana'); assert.equal(await page.locator('#results p').count(),2); assert.ok((await page.locator('#results').innerText()).includes('Expreso Bávaro')); assert.equal(await page.locator('.operator li').count(),4); assert.equal(await page.locator('#more-items p').count(),8); assert.ok((await page.locator('#more-items').innerText()).includes('Aeropuerto Punta Cana'));
             assert.deepEqual(errors,[]);
             await page.close();
           }
