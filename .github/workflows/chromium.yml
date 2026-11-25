@@ -13,29 +13,41 @@ jobs:
           node-version: '22'
       - run: npm install --no-save playwright
       - run: npx playwright install --with-deps chromium
+      - run: SITE_URL=https://example.com node build.mjs
       - run: |
           node --input-type=module <<'JS'
           import { chromium } from 'playwright';
-          import { pathToFileURL } from 'node:url';
+          import { createServer } from 'node:http';
+          import { readFileSync } from 'node:fs';
           import assert from 'node:assert/strict';
+          const server=createServer((req,res)=>{try{const path=new URL(req.url,'http://localhost').pathname;res.setHeader('Content-Type',path.endsWith('.xml')?'application/xml':'text/html; charset=utf-8');res.end(readFileSync('public'+path+(path.endsWith('/')?'index.html':'')))}catch{res.statusCode=404;res.end()}});
+          await new Promise(r=>server.listen(0,'127.0.0.1',r));
+          const origin='http://127.0.0.1:'+server.address().port;
           const browser=await chromium.launch();
+          try {
           for(const width of [375,768,1440]){
             const page=await browser.newPage({viewport:{width,height:900},locale:'de-DE'});
             const errors=[];page.on('pageerror',e=>errors.push(e.message));
-            await page.goto(pathToFileURL(process.cwd()+'/public/index.html').href);
+            await page.goto(origin+'/');
             assert.equal(await page.locator('html').getAttribute('lang'),'de');
             for(const lang of ['es','en','fr','pt','de']){
               await page.locator('#language').selectOption(lang);
               assert.equal(await page.locator('html').getAttribute('lang'),lang);
-              assert.ok(await page.locator('h1').innerText());
+              await page.goto(origin+'/'+lang+'/');
+              assert.equal(await page.locator('html').getAttribute('lang'),lang);
+              assert.equal(await page.locator('link[hreflang]').count(),6);
+              assert.equal(await page.locator('link[rel=canonical]').getAttribute('href'),'https://example.com/'+lang+'/');
+              assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+              await page.goto(origin+'/');
             }
-            await page.locator('#language').selectOption('fr');
-            await page.reload();
-            assert.equal(await page.locator('html').getAttribute('lang'),'fr');
-            assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+            await page.locator('#language').selectOption('en');
+            await page.locator('#filter').fill('Sosúa'); assert.ok((await page.locator('#results').innerText()).includes('Sosúa')); await page.locator('#filter').fill('zzzz'); assert.equal(await page.locator('#results p').count(),0);
             assert.deepEqual(errors,[]);
             await page.close();
           }
-          await browser.close();
-          console.log('Chromium smoke tests passed');
+          const xml=readFileSync('public/sitemap.xml','utf8');
+          for(const l of ['de','es','en','fr','pt'])assert.ok(xml.includes('https://example.com/'+l+'/'));
+          assert.ok(readFileSync('public/robots.txt','utf8').includes('https://example.com/sitemap.xml'));
+          } finally {await browser.close();server.close()}
+          console.log('Chromium build and feature checks passed');
           JS
