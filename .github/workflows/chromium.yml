@@ -1,0 +1,41 @@
+name: Chromium smoke test
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: |
+          node --input-type=module <<'JS'
+          import { chromium } from 'playwright';
+          import { pathToFileURL } from 'node:url';
+          import assert from 'node:assert/strict';
+          const browser=await chromium.launch();
+          for(const width of [375,768,1440]){
+            const page=await browser.newPage({viewport:{width,height:900},locale:'de-DE'});
+            const errors=[];page.on('pageerror',e=>errors.push(e.message));
+            await page.goto(pathToFileURL(process.cwd()+'/public/index.html').href);
+            assert.equal(await page.locator('html').getAttribute('lang'),'de');
+            for(const lang of ['es','en','fr','pt','de']){
+              await page.locator('#language').selectOption(lang);
+              assert.equal(await page.locator('html').getAttribute('lang'),lang);
+              assert.ok(await page.locator('h1').innerText());
+            }
+            await page.locator('#language').selectOption('fr');
+            await page.reload();
+            assert.equal(await page.locator('html').getAttribute('lang'),'fr');
+            assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+            assert.deepEqual(errors,[]);
+            await page.close();
+          }
+          await browser.close();
+          console.log('Chromium smoke tests passed');
+          JS
