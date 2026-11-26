@@ -30,24 +30,24 @@ jobs:
             const errors=[];page.on('pageerror',e=>errors.push(e.message));
             await page.goto(origin+'/');
             assert.equal(await page.locator('html').getAttribute('lang'),'de');
-            for(const lang of ['es','en','fr','pt','de']){
+            for(const lang of ['es','en','fr','pt','it','de']){
               await page.locator('#language').selectOption(lang);
               assert.equal(await page.locator('html').getAttribute('lang'),lang);
               await page.goto(origin+'/'+lang+'/');
               assert.equal(await page.locator('html').getAttribute('lang'),lang);
-              assert.equal(await page.locator('link[hreflang]').count(),6);
+              assert.equal(await page.locator('link[hreflang]').count(),7);
               assert.equal(await page.locator('link[rel=canonical]').getAttribute('href'),'https://example.com/'+lang+'/');
               assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
               await page.goto(origin+'/');
             }
             await page.locator('#language').selectOption('en');
-            await page.locator('#filter').fill('Sosúa'); assert.ok((await page.locator('#results').innerText()).includes('Sosúa')); await page.locator('#filter').fill('zzzz'); assert.equal(await page.locator('#results p').count(),0);
+            await page.locator('#filter').fill('Sosua'); assert.ok((await page.locator('#results').innerText()).includes('Sosúa')); await page.locator('#filter').fill('zzzz'); assert.equal(await page.locator('#results p').count(),0);
             await page.locator('#filter').fill('Punta Cana'); assert.equal(await page.locator('#results p').count(),2); assert.ok((await page.locator('#results').innerText()).includes('Expreso Bávaro')); assert.equal(await page.locator('.operator li').count(),4); assert.equal(await page.locator('#more-items p').count(),8); assert.ok((await page.locator('#more-items').innerText()).includes('Aeropuerto Punta Cana'));
             assert.deepEqual(errors,[]);
             await page.close();
           }
           const xml=readFileSync('public/sitemap.xml','utf8');
-          for(const l of ['de','es','en','fr','pt'])assert.ok(xml.includes('https://example.com/'+l+'/'));
+          for(const l of ['de','es','en','fr','pt','it'])assert.ok(xml.includes('https://example.com/'+l+'/'));
           assert.ok(readFileSync('public/robots.txt','utf8').includes('https://example.com/sitemap.xml'));
           } finally {await browser.close();server.close()}
           console.log('Chromium build and feature checks passed');
