@@ -1,6 +1,6 @@
 import {readFileSync,writeFileSync,mkdirSync} from 'node:fs';
 const html=readFileSync('public/index.html','utf8');
-const langs=['de','es','en','fr','pt'];
+const langs=['de','es','en','fr','pt','it'];
 const titles=JSON.parse(html.match(/titles=(\[[^\]]+\])/)[1]);
 const intros=JSON.parse(html.match(/intro=(\[[^\]]+\])/)[1]);
 const origin=process.env.SITE_URL?.replace(/\/$/,'');
