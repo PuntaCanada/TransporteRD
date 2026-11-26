@@ -14,3 +14,5 @@ writeFileSync('public/'+l+'/index.html',page);
 }
 writeFileSync('public/robots.txt','User-agent: *\nAllow: /\n'+(origin?'Sitemap: '+origin+'/sitemap.xml\n':''));
 if(origin)writeFileSync('public/sitemap.xml','<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+langs.map(l=>'<url><loc>'+origin+'/'+l+'/</loc></url>').join('')+'</urlset>');
+
+writeFileSync('public/google62b1133f7c042e9b.html','google-site-verification: google62b1133f7c042e9b.html\n');
