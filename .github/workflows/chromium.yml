@@ -8,12 +8,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
       - run: npm install --no-save playwright
       - run: npx playwright install --with-deps chromium
       - run: |
+          git cat-file -e 03467c55e76c68a9cd912c737638de9e7114461e:public/index.html
+          git cat-file -e 03467c55e76c68a9cd912c737638de9e7114461e:build.mjs
           mkdir -p baseline/public
           git show 03467c55e76c68a9cd912c737638de9e7114461e:public/index.html > baseline/public/index.html
           git show 03467c55e76c68a9cd912c737638de9e7114461e:build.mjs > baseline/build.mjs
