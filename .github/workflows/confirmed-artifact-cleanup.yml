@@ -1,0 +1,36 @@
+name: Confirmed screenshot cleanup
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/confirmed-artifact-cleanup.yml']
+permissions: {}
+jobs:
+  cleanup:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'maintenance/confirmed-artifact-cleanup'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      pull-requests: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+    steps:
+      - name: Delete only explicitly approved artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          total=0
+          while read -r pr run artifact name; do
+            test "$(gh api "repos/$REPO/pulls/$pr" --jq '.merged')" = true
+            gh api "repos/$REPO/actions/runs/$run" > /tmp/run.json
+            jq -e '.status == "completed" and .conclusion == "success"' /tmp/run.json >/dev/null
+            gh api "repos/$REPO/actions/runs/$run/artifacts" --paginate --jq '.artifacts[]' | jq -s --argjson id "$artifact" --arg name "$name" 'map(select(.id == $id and .name == $name))' > /tmp/artifact.json
+            if test "$(jq length /tmp/artifact.json)" = 0; then echo "Absent or not matching: $artifact; no deletion"; continue; fi
+            size=$(jq -er '.[0].size_in_bytes' /tmp/artifact.json)
+            gh api --method DELETE "repos/$REPO/actions/artifacts/$artifact"
+            total=$((total+size))
+            echo "DELETED id=$artifact name=$name bytes=$size run=$run merged_pr=$pr"
+          done <<'APPROVED'
+          4 45841812334 15127748776 visual-review
+          APPROVED
+          echo "Deleted bytes: $total"
